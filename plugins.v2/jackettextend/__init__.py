@@ -30,7 +30,7 @@ class JackettExtend(_PluginBase):
     # 插件图标
     plugin_icon = "Jackett_A.png"
     # 插件版本
-    plugin_version = "1.2"
+    plugin_version = "1.3"
     # 插件作者
     plugin_author = "jtcymc"
     # 作者主页
@@ -146,14 +146,21 @@ class JackettExtend(_PluginBase):
             "password": self._password,
         })
 
-    def search_torrents(self, site, keywords, mtype: Optional[MediaType] = None, page: Optional[int] = 0) -> List[
-        TorrentInfo]:
+    def search_torrents(self, site: dict, keyword: str, mtype: Optional[MediaType] = None, page: Optional[int] = 0) -> \
+            List[
+                TorrentInfo]:
         """
         使用 Jackett Torznab API 根据关键字检索种子
+        :param site:  站点
+        :param keyword:  搜索关键词
+        :param mtype:  媒体类型
+        :param page:  页码
+        :reutrn: 资源列表
         """
         results = []
-
-        if not site or (site.get("name", "").split("-")[0] != self.plugin_name):
+        if not site or not keyword:
+            return results
+        if site.get("name", "").split("-")[0] != self.plugin_name:
             return results
 
         domain = StringUtils.get_url_domain(site.get("domain", ""))
@@ -164,33 +171,29 @@ class JackettExtend(_PluginBase):
         indexer_name = domain.split(".")[-1]
         categories = self.get_cat(mtype)
 
-        for keyword in keywords:
-            if not keyword:
-                continue
+        try:
+            logger.info(f"【{self.plugin_name}】开始检索 Indexer：\"{site.get('name')}\"，关键词：\"{keyword}\"")
 
-            try:
-                logger.info(f"【{self.plugin_name}】开始检索 Indexer：\"{site.get('name')}\"，关键词：\"{keyword}\"")
+            params = {
+                "apikey": self._api_key,
+                "t": "search",
+                "q": keyword,
+                "cat": ",".join(map(str, categories))
+            }
+            query_string = urlencode(params, quote_via=quote_plus)
+            api_url = f"{self._host.rstrip('/')}/api/v2.0/indexers/{indexer_name}/results/torznab/?{query_string}"
 
-                params = {
-                    "apikey": self._api_key,
-                    "t": "search",
-                    "q": keyword,
-                    "cat": ",".join(map(str, categories))
-                }
-                query_string = urlencode(params, quote_via=quote_plus)
-                api_url = f"{self._host.rstrip('/')}/api/v2.0/indexers/{indexer_name}/results/torznab/?{query_string}"
+            result_array = self.__parse_torznab_xml(api_url)
 
-                result_array = self.__parse_torznab_xml(api_url)
+            if not result_array:
+                logger.warning(f"【{self.plugin_name}】Indexer：\"{site.get('name')}\" 未检索到数据")
+                return results
 
-                if not result_array:
-                    logger.warning(f"【{self.plugin_name}】Indexer：\"{site.get('name')}\" 未检索到数据")
-                    continue
+            logger.info(f"【{self.plugin_name}】Indexer：\"{site.get('name')}\" 返回数据：{len(result_array)} 条")
+            results.extend(result_array)
 
-                logger.info(f"【{self.plugin_name}】Indexer：\"{site.get('name')}\" 返回数据：{len(result_array)} 条")
-                results.extend(result_array)
-
-            except Exception as e:
-                logger.error(f"【{self.plugin_name}】检索出错：{str(e)}")
+        except Exception as e:
+            logger.error(f"【{self.plugin_name}】检索出错：{str(e)}")
 
         return results
 

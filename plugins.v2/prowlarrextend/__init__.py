@@ -27,7 +27,7 @@ class ProwlarrExtend(_PluginBase):
     # 插件图标
     plugin_icon = "Prowlarr.png"
     # 插件版本
-    plugin_version = "1.2"
+    plugin_version = "1.3"
     # 插件作者
     plugin_author = "jtcymc"
     # 作者主页
@@ -211,14 +211,15 @@ class ProwlarrExtend(_PluginBase):
             logger.error(f"【{self.plugin_name}】获取 indexer 失败：{str(e)}")
             return []
 
-    def search_torrents(self, site, keywords, mtype: Optional[MediaType] = None, page: Optional[int] = 0) -> List[
-        TorrentInfo]:
+    def search_torrents(self, site: dict, keyword: str, mtype: Optional[MediaType] = None, page: Optional[int] = 0) -> \
+            List[
+                TorrentInfo]:
         """
         根据关键字检索种子
         """
         results = []
 
-        if not site or not keywords:
+        if not site or not keyword:
             return results
 
         if site.get("name", "").split("-")[0] != self.plugin_name:
@@ -239,45 +240,42 @@ class ProwlarrExtend(_PluginBase):
             "Accept": "application/json, text/javascript, */*; q=0.01"
         }
         categories = self.get_cat(mtype)
-        for keyword in keywords:
-            if not keyword:
-                continue
-            try:
-                logger.info(f"【{self.plugin_name}】开始检索 Indexer：{site.get('name')}，关键词：{keyword}")
-                params = [
-                             ("query", keyword),
-                             ("indexerIds", indexer_id),
-                             ("type", "search"),
-                             ("limit", 150),
-                             ("offset", page * 150 if page else 0),
-                         ] + [("categories", cat) for cat in categories]
-                query_string = urlencode(params, quote_via=quote_plus)
-                api_url = f"{self._host.rstrip('/')}/api/v1/search?{query_string}"
+        try:
+            logger.info(f"【{self.plugin_name}】开始检索 Indexer：{site.get('name')}，关键词：{keyword}")
+            params = [
+                         ("query", keyword),
+                         ("indexerIds", indexer_id),
+                         ("type", "search"),
+                         ("limit", 150),
+                         ("offset", page * 150 if page else 0),
+                     ] + [("categories", cat) for cat in categories]
+            query_string = urlencode(params, quote_via=quote_plus)
+            api_url = f"{self._host.rstrip('/')}/api/v1/search?{query_string}"
 
-                response = RequestUtils(headers=headers).get_res(api_url)
-                if not response:
-                    logger.warning(f"【{self.plugin_name}】{site.get('name')} 返回为空")
-                    continue
+            response = RequestUtils(headers=headers).get_res(api_url)
+            if not response:
+                logger.warning(f"【{self.plugin_name}】{site.get('name')} 返回为空")
+                return results
 
-                data = response.json()
-                if not isinstance(data, list):
-                    logger.warning(f"【{self.plugin_name}】{site.get('name')} 返回数据格式异常")
-                    continue
+            data = response.json()
+            if not isinstance(data, list):
+                logger.warning(f"【{self.plugin_name}】{site.get('name')} 返回数据格式异常")
+                return results
 
-                for entry in data:
-                    torrent = TorrentInfo(
-                        title=entry.get("title"),
-                        enclosure=entry.get("downloadUrl") or entry.get("magnetUrl"),
-                        description=entry.get("sortTitle"),
-                        size=entry.get("size"),
-                        seeders=entry.get("seeders"),
-                        pubdate=entry.get("publishDate"),
-                        page_url=entry.get("infoUrl") or entry.get("guid"),
-                    )
-                    results.append(torrent)
+            for entry in data:
+                torrent = TorrentInfo(
+                    title=entry.get("title"),
+                    enclosure=entry.get("downloadUrl") or entry.get("magnetUrl"),
+                    description=entry.get("sortTitle"),
+                    size=entry.get("size"),
+                    seeders=entry.get("seeders"),
+                    pubdate=entry.get("publishDate"),
+                    page_url=entry.get("infoUrl") or entry.get("guid"),
+                )
+                results.append(torrent)
 
-            except Exception as e:
-                logger.error(f"【{self.plugin_name}】检索错误：{str(e)}\n{traceback.format_exc()}")
+        except Exception as e:
+            logger.error(f"【{self.plugin_name}】检索错误：{str(e)}\n{traceback.format_exc()}")
 
         return results
 
