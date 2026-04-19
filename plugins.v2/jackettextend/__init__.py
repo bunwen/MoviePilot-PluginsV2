@@ -169,6 +169,21 @@ class JackettExtend(_PluginBase):
             return results
 
         indexer_name = domain.split(".")[-1]
+
+        # 优先使用 site 中保存的 url 来提取 indexer_id（更可靠）
+        # site["url"] 格式: http://host:port/api/v2.0/indexers/{indexer_id}/results/torznab/
+        indexer_url = site.get("url", "")
+        if indexer_url:
+            try:
+                # 从 url 中提取 indexer_id: /indexers/{id}/results
+                import re
+                m = re.search(r'/indexers/([^/]+)/results/', indexer_url)
+                if m:
+                    indexer_name = m.group(1)
+                    logger.debug(f"【{self.plugin_name}】从 URL 提取 indexer_id: {indexer_name}")
+            except Exception:
+                pass
+
         categories = self.get_cat(mtype)
 
         try:
@@ -183,6 +198,7 @@ class JackettExtend(_PluginBase):
             query_string = urlencode(params, quote_via=quote_plus)
             api_url = f"{self._host.rstrip('/')}/api/v2.0/indexers/{indexer_name}/results/torznab/?{query_string}"
 
+            logger.debug(f"【{self.plugin_name}】请求 URL: {api_url}")
             result_array = self.__parse_torznab_xml(api_url)
 
             if not result_array:
@@ -308,9 +324,14 @@ class JackettExtend(_PluginBase):
             ret = RequestUtils(timeout=60).get_res(url,
                                                    proxies=settings.PROXY if self._proxy else None)
         except Exception as e:
-            logger.error(str(e))
+            logger.error(f"【{self.plugin_name}】请求 Jackett API 出错：{str(e)}")
             return []
         if not ret or not ret.text:
+            logger.warning(f"【{self.plugin_name}】Jackett API 无响应 (URL: {url})")
+            return []
+        # 检查是否返回了错误信息
+        if ret.status_code != 200:
+            logger.warning(f"【{self.plugin_name}】Jackett API 返回状态码 {ret.status_code} (URL: {url})")
             return []
         xmls = ret.text
         torrents = []
@@ -345,6 +366,10 @@ class JackettExtend(_PluginBase):
                     peers = 0
                     # imdbid
                     imdbid = ""
+                    # 促销信息（默认值）
+                    downloadvolumefactor = 1.0
+                    uploadvolumefactor = 1.0
+                    freeleech = False
 
                     torznab_attrs = item.getElementsByTagName("torznab:attr")
                     for torznab_attr in torznab_attrs:
@@ -370,7 +395,7 @@ class JackettExtend(_PluginBase):
                         size=size,
                         seeders=seeders,
                         peers=peers,
-                        site_name=self.jackett_domain,
+                        site_name=site.get("name", self.plugin_name),
                         page_url=page_url,
                         imdbid=imdbid
                     )
