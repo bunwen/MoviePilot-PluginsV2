@@ -30,7 +30,7 @@ class JackettExtend(_PluginBase):
     # 插件图标
     plugin_icon = "Jackett_A.png"
     # 插件版本
-    plugin_version = "1.3.5"
+    plugin_version = "1.3.6"
     # 插件作者
     plugin_author = "jtcymc"
     # 作者主页
@@ -160,7 +160,7 @@ class JackettExtend(_PluginBase):
         :reutrn: 资源列表
         """
         results = []
-        if not site or not keyword:
+        if not site:
             return results
 
         # 通过 domain 前缀判断是否是本插件注册的站点
@@ -181,14 +181,17 @@ class JackettExtend(_PluginBase):
         categories = self.get_cat(mtype)
 
         try:
-            logger.info(f"【{self.plugin_name}】开始检索 Indexer：\"{site.get('name')}\"，关键词：\"{keyword}\"")
+            # keyword 为 None 时是浏览模式，不传 q 参数让 Jackett 返回最新种子
+            mode = "浏览" if not keyword else "搜索"
+            logger.info(f"【{self.plugin_name}】开始{mode} Indexer：\"{site.get('name')}\"，关键词：\"{keyword}\"")
 
             params = {
                 "apikey": self._api_key,
                 "t": "search",
-                "q": keyword,
                 "cat": ",".join(map(str, categories))
             }
+            if keyword:
+                params["q"] = keyword
             query_string = urlencode(params, quote_via=quote_plus)
             api_url = f"{self._host.rstrip('/')}/api/v2.0/indexers/{indexer_name}/results/torznab/?{query_string}"
 

@@ -3,7 +3,7 @@
     "name": "JackettExtend",
     "description": "扩展检索以支持 Jackett 站点资源",
     "labels": "索引器,Jackett",
-    "version": "1.3.5",
+    "version": "1.3.6",
     "icon": "Jackett_A.png",
     "author": "shaw",
     "level": 1,
@@ -16,7 +16,8 @@
       "v1.3.2": "用 domain 前缀替代 name 判断识别站点",
       "v1.3.3": "注册 refresh_torrents 模块",
       "v1.3.4": "注册 async 版本模块",
-      "v1.3.5": "兼容 cat 参数，修复参数不匹配报错"
+      "v1.3.5": "兼容 cat 参数，修复参数不匹配报错",
+      "v1.3.6": "修复浏览站点资源时 keyword 为 None 导致直接返回空的问题"
     }
   },
   "ProwlarrExtend": {
