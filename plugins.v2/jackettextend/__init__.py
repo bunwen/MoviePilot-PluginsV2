@@ -30,7 +30,7 @@ class JackettExtend(_PluginBase):
     # 插件图标
     plugin_icon = "Jackett_A.png"
     # 插件版本
-    plugin_version = "1.4"
+    plugin_version = "1.5"
     # 插件作者
     plugin_author = "jtcymc"
     # 作者主页
@@ -290,7 +290,9 @@ class JackettExtend(_PluginBase):
         """
         return {
             "search_torrents": self.search_torrents,
+            "async_search_torrents": self.search_torrents,
             "refresh_torrents": self.search_torrents,
+            "async_refresh_torrents": self.search_torrents,
         }
 
     def get_api(self) -> List[Dict[str, Any]]:
