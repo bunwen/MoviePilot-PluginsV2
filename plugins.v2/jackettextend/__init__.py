@@ -30,7 +30,7 @@ class JackettExtend(_PluginBase):
     # 插件图标
     plugin_icon = "Jackett_A.png"
     # 插件版本
-    plugin_version = "1.3.10"
+    plugin_version = "1.3.11"
     # 插件作者
     plugin_author = "jtcymc"
     # 作者主页
@@ -161,20 +161,14 @@ class JackettExtend(_PluginBase):
         """
         results = []
         if not site:
-            print(f"[JackettExtend-DEBUG] site is None/empty, returning []")
             return results
 
-        # 调试：打印 site 内容，确认实际结构
-        domain_raw = site.get("domain", "")
-        print(f"[JackettExtend-DEBUG] site keys={list(site.keys()) if hasattr(site, 'keys') else type(site)}, domain={domain_raw!r}")
-
         # 通过 domain 前缀判断是否是本插件注册的站点
+        domain_raw = site.get("domain", "")
         domain_check = domain_raw.replace("https://", "").replace("http://", "")
         jackett_prefix = self.jackett_domain.split(".")[0] + "."  # "jackett_extend."
-        print(f"[JackettExtend-DEBUG] domain_check={domain_check!r}, prefix={jackett_prefix!r}, match={domain_check.startswith(jackett_prefix)}")
 
         if not domain_check.startswith(jackett_prefix):
-            print(f"[JackettExtend-DEBUG] prefix mismatch, returning []")
             return results
 
         domain = StringUtils.get_url_domain(domain_raw)
@@ -202,7 +196,7 @@ class JackettExtend(_PluginBase):
             api_url = f"{self._host.rstrip('/')}/api/v2.0/indexers/{indexer_name}/results/torznab/?{query_string}"
 
             logger.debug(f"【{self.plugin_name}】请求 URL: {api_url}")
-            result_array = self.__parse_torznab_xml(api_url)
+            result_array = self.__parse_torznab_xml(api_url, site=site)
 
             if not result_array:
                 logger.warning(f"【{self.plugin_name}】Indexer：\"{site.get('name')}\" 未检索到数据")
@@ -296,8 +290,6 @@ class JackettExtend(_PluginBase):
         """
         # 包装一层，确保新代码一定被执行
         def _wrapped_search(*args, **kwargs):
-            # 用 print 直接输出到 stdout，绕过 logger 的 __get_caller 机制
-            print(f"[JackettExtend-DEBUG] _wrapped_search 被调用！args={len(args)} kwargs={list(kwargs.keys())}")
             return self.search_torrents(*args, **kwargs)
 
         return {
@@ -320,10 +312,11 @@ class JackettExtend(_PluginBase):
 
         pass
 
-    def __parse_torznab_xml(self, url) -> List[TorrentInfo]:
+    def __parse_torznab_xml(self, url, site: dict = None) -> List[TorrentInfo]:
         """
         从 torznab XML 中解析种子信息
         :param url: XML 数据的 URL
+        :param site: 站点信息
         :return: TorrentInfo 列表
         """
         if not url:
@@ -403,7 +396,7 @@ class JackettExtend(_PluginBase):
                         size=size,
                         seeders=seeders,
                         peers=peers,
-                        site_name=site.get("name", self.plugin_name),
+                        site_name=site.get("name", self.plugin_name) if site else self.plugin_name,
                         page_url=page_url,
                         imdbid=imdbid
                     )
