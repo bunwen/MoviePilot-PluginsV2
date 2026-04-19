@@ -30,7 +30,7 @@ class JackettExtend(_PluginBase):
     # 插件图标
     plugin_icon = "Jackett_A.png"
     # 插件版本
-    plugin_version = "1.5"
+    plugin_version = "1.6"
     # 插件作者
     plugin_author = "jtcymc"
     # 作者主页
@@ -147,7 +147,8 @@ class JackettExtend(_PluginBase):
             "password": self._password,
         })
 
-    def search_torrents(self, site: dict, keyword: str, mtype: Optional[MediaType] = None, page: Optional[int] = 0) -> \
+    def search_torrents(self, site: dict, keyword: str, mtype: Optional[MediaType] = None,
+                        cat: Optional[str] = None, page: Optional[int] = 0, **kwargs) -> \
             List[
                 TorrentInfo]:
         """
