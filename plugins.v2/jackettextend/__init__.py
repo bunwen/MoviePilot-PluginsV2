@@ -30,7 +30,7 @@ class JackettExtend(_PluginBase):
     # 插件图标
     plugin_icon = "Jackett_A.png"
     # 插件版本
-    plugin_version = "1.3.6"
+    plugin_version = "1.3.7"
     # 插件作者
     plugin_author = "jtcymc"
     # 作者主页
@@ -166,9 +166,11 @@ class JackettExtend(_PluginBase):
         # 通过 domain 前缀判断是否是本插件注册的站点
         # SitesHelper.get_indexers() 返回时 name 可能被替换为 domain 值，
         # 所以不能用 name 来判断，必须用 domain 前缀匹配
+        # 注意：domain 可能带 https:// 前缀，需要先去掉协议头
         domain_raw = site.get("domain", "")
+        domain_check = domain_raw.replace("https://", "").replace("http://", "")
         jackett_prefix = self.jackett_domain.split(".")[0] + "."  # "jackett_extend."
-        if not domain_raw.startswith(jackett_prefix):
+        if not domain_check.startswith(jackett_prefix):
             return results
 
         domain = StringUtils.get_url_domain(domain_raw)
