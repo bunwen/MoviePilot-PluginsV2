@@ -30,7 +30,7 @@ class JackettExtend(_PluginBase):
     # 插件图标
     plugin_icon = "Jackett_A.png"
     # 插件版本
-    plugin_version = "1.3.7"
+    plugin_version = "1.3.8"
     # 插件作者
     plugin_author = "jtcymc"
     # 作者主页
@@ -163,13 +163,15 @@ class JackettExtend(_PluginBase):
         if not site:
             return results
 
-        # 通过 domain 前缀判断是否是本插件注册的站点
-        # SitesHelper.get_indexers() 返回时 name 可能被替换为 domain 值，
-        # 所以不能用 name 来判断，必须用 domain 前缀匹配
-        # 注意：domain 可能带 https:// 前缀，需要先去掉协议头
+        # 调试：打印 site 内容，确认实际结构
         domain_raw = site.get("domain", "")
+        logger.warning(f"【{self.plugin_name}】DEBUG site keys={list(site.keys()) if hasattr(site, 'keys') else type(site)}, domain={domain_raw!r}")
+
+        # 通过 domain 前缀判断是否是本插件注册的站点
         domain_check = domain_raw.replace("https://", "").replace("http://", "")
         jackett_prefix = self.jackett_domain.split(".")[0] + "."  # "jackett_extend."
+        logger.warning(f"【{self.plugin_name}】DEBUG domain_check={domain_check!r}, prefix={jackett_prefix!r}, match={domain_check.startswith(jackett_prefix)}")
+
         if not domain_check.startswith(jackett_prefix):
             return results
 
