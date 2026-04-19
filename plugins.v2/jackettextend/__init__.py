@@ -30,7 +30,7 @@ class JackettExtend(_PluginBase):
     # 插件图标
     plugin_icon = "Jackett_A.png"
     # 插件版本
-    plugin_version = "1.3"
+    plugin_version = "1.4"
     # 插件作者
     plugin_author = "jtcymc"
     # 作者主页
@@ -60,6 +60,7 @@ class JackettExtend(_PluginBase):
         """
         初始化插件
         """
+        logger.info(f"【{self.plugin_name}】v{self.plugin_version} 初始化中...")
         self.sites_helper = SitesHelper()
         # 读取配置
         if config:
@@ -289,6 +290,7 @@ class JackettExtend(_PluginBase):
         """
         return {
             "search_torrents": self.search_torrents,
+            "refresh_torrents": self.search_torrents,
         }
 
     def get_api(self) -> List[Dict[str, Any]]:
