@@ -30,7 +30,7 @@ class JackettExtend(_PluginBase):
     # 插件图标
     plugin_icon = "Jackett_A.png"
     # 插件版本
-    plugin_version = "1.3.11"
+    plugin_version = "1.3.12"
     # 插件作者
     plugin_author = "jtcymc"
     # 作者主页
@@ -160,27 +160,26 @@ class JackettExtend(_PluginBase):
         :reutrn: 资源列表
         """
         results = []
-        if not site:
-            return results
-
-        # 通过 domain 前缀判断是否是本插件注册的站点
-        domain_raw = site.get("domain", "")
-        domain_check = domain_raw.replace("https://", "").replace("http://", "")
-        jackett_prefix = self.jackett_domain.split(".")[0] + "."  # "jackett_extend."
-
-        if not domain_check.startswith(jackett_prefix):
-            return results
-
-        domain = StringUtils.get_url_domain(domain_raw)
-        if not domain:
-            logger.warning(f"【{self.plugin_name}】站点域名无法解析: {domain_raw}")
-            return results
-
-        indexer_name = domain.split(".")[-1]
-
-        categories = self.get_cat(mtype)
-
         try:
+            if not site:
+                return results
+
+            # 通过 domain 前缀判断是否是本插件注册的站点
+            domain_raw = site.get("domain", "")
+            domain_check = domain_raw.replace("https://", "").replace("http://", "")
+            jackett_prefix = self.jackett_domain.split(".")[0] + "."  # "jackett_extend."
+
+            if not domain_check.startswith(jackett_prefix):
+                return results
+
+            # 直接从 domain 中提取 indexer_id，避免依赖 StringUtils.get_url_domain 对自定义格式的解析
+            indexer_name = site.get("indexer_id") or domain_check[len(jackett_prefix):]
+            if not indexer_name:
+                logger.warning(f"【{self.plugin_name}】站点域名无法解析 indexer_id: {domain_raw}")
+                return results
+
+            categories = self.get_cat(mtype)
+
             # keyword 为 None 时是浏览模式，不传 q 参数让 Jackett 返回最新种子
             mode = "浏览" if not keyword else "搜索"
             logger.info(f"【{self.plugin_name}】开始{mode} Indexer：\"{site.get('name')}\"，关键词：\"{keyword}\"")
@@ -188,10 +187,12 @@ class JackettExtend(_PluginBase):
             params = {
                 "apikey": self._api_key,
                 "t": "search",
-                "cat": ",".join(map(str, categories))
             }
             if keyword:
                 params["q"] = keyword
+            # 仅在指定了媒体类型时才传分类过滤，避免部分不支持标准 torznab 分类的 indexer 返回空结果
+            if mtype:
+                params["cat"] = ",".join(map(str, categories))
             query_string = urlencode(params, quote_via=quote_plus)
             api_url = f"{self._host.rstrip('/')}/api/v2.0/indexers/{indexer_name}/results/torznab/?{query_string}"
 
@@ -199,7 +200,7 @@ class JackettExtend(_PluginBase):
             result_array = self.__parse_torznab_xml(api_url, site=site)
 
             if not result_array:
-                logger.warning(f"【{self.plugin_name}】Indexer：\"{site.get('name')}\" 未检索到数据")
+                logger.warning(f"【{self.plugin_name}】Indexer：\"{site.get('name')}\" 未检索到数据 (URL: {api_url})")
                 return results
 
             logger.info(f"【{self.plugin_name}】Indexer：\"{site.get('name')}\" 返回数据：{len(result_array)} 条")
@@ -274,6 +275,7 @@ class JackettExtend(_PluginBase):
                     "name": f'{self.plugin_name}-{indexer_name}',
                     "url": f'{self._host.rstrip("/")}/api/v2.0/indexers/{indexer_id}/results/torznab/',
                     "domain": self.jackett_domain.replace(self.plugin_author, str(indexer_id)),
+                    "indexer_id": str(indexer_id),
                     "public": True,
                     "proxy": False,
                 })
