@@ -30,7 +30,7 @@ class JackettExtend(_PluginBase):
     # 插件图标
     plugin_icon = "Jackett_A.png"
     # 插件版本
-    plugin_version = "1.3.9"
+    plugin_version = "1.3.10"
     # 插件作者
     plugin_author = "jtcymc"
     # 作者主页
@@ -161,18 +161,20 @@ class JackettExtend(_PluginBase):
         """
         results = []
         if not site:
+            print(f"[JackettExtend-DEBUG] site is None/empty, returning []")
             return results
 
         # 调试：打印 site 内容，确认实际结构
         domain_raw = site.get("domain", "")
-        logger.warning(f"【{self.plugin_name}】DEBUG site keys={list(site.keys()) if hasattr(site, 'keys') else type(site)}, domain={domain_raw!r}")
+        print(f"[JackettExtend-DEBUG] site keys={list(site.keys()) if hasattr(site, 'keys') else type(site)}, domain={domain_raw!r}")
 
         # 通过 domain 前缀判断是否是本插件注册的站点
         domain_check = domain_raw.replace("https://", "").replace("http://", "")
         jackett_prefix = self.jackett_domain.split(".")[0] + "."  # "jackett_extend."
-        logger.warning(f"【{self.plugin_name}】DEBUG domain_check={domain_check!r}, prefix={jackett_prefix!r}, match={domain_check.startswith(jackett_prefix)}")
+        print(f"[JackettExtend-DEBUG] domain_check={domain_check!r}, prefix={jackett_prefix!r}, match={domain_check.startswith(jackett_prefix)}")
 
         if not domain_check.startswith(jackett_prefix):
+            print(f"[JackettExtend-DEBUG] prefix mismatch, returning []")
             return results
 
         domain = StringUtils.get_url_domain(domain_raw)
@@ -291,14 +293,11 @@ class JackettExtend(_PluginBase):
     def get_module(self) -> Dict[str, Any]:
         """
         获取插件模块声明，用于胁持系统模块实现（方法名：方法实现）
-        {
-            "id1": self.xxx1,
-            "id2": self.xxx2,
-        }
         """
         # 包装一层，确保新代码一定被执行
         def _wrapped_search(*args, **kwargs):
-            logger.warning(f"【{self.plugin_name}】_wrapped_search 被调用！args={len(args)} kwargs={list(kwargs.keys())}")
+            # 用 print 直接输出到 stdout，绕过 logger 的 __get_caller 机制
+            print(f"[JackettExtend-DEBUG] _wrapped_search 被调用！args={len(args)} kwargs={list(kwargs.keys())}")
             return self.search_torrents(*args, **kwargs)
 
         return {
