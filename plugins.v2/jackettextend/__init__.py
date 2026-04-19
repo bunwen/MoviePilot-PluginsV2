@@ -160,29 +160,21 @@ class JackettExtend(_PluginBase):
         results = []
         if not site or not keyword:
             return results
-        if site.get("name", "").split("-")[0] != self.plugin_name:
+
+        # 通过 domain 前缀判断是否是本插件注册的站点
+        # SitesHelper.get_indexers() 返回时 name 可能被替换为 domain 值，
+        # 所以不能用 name 来判断，必须用 domain 前缀匹配
+        domain_raw = site.get("domain", "")
+        jackett_prefix = self.jackett_domain.split(".")[0] + "."  # "jackett_extend."
+        if not domain_raw.startswith(jackett_prefix):
             return results
 
-        domain = StringUtils.get_url_domain(site.get("domain", ""))
+        domain = StringUtils.get_url_domain(domain_raw)
         if not domain:
-            logger.warning(f"【{self.plugin_name}】站点域名无法解析")
+            logger.warning(f"【{self.plugin_name}】站点域名无法解析: {domain_raw}")
             return results
 
         indexer_name = domain.split(".")[-1]
-
-        # 优先使用 site 中保存的 url 来提取 indexer_id（更可靠）
-        # site["url"] 格式: http://host:port/api/v2.0/indexers/{indexer_id}/results/torznab/
-        indexer_url = site.get("url", "")
-        if indexer_url:
-            try:
-                # 从 url 中提取 indexer_id: /indexers/{id}/results
-                import re
-                m = re.search(r'/indexers/([^/]+)/results/', indexer_url)
-                if m:
-                    indexer_name = m.group(1)
-                    logger.debug(f"【{self.plugin_name}】从 URL 提取 indexer_id: {indexer_name}")
-            except Exception:
-                pass
 
         categories = self.get_cat(mtype)
 
