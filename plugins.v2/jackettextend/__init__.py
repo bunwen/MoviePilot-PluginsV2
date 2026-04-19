@@ -30,7 +30,7 @@ class JackettExtend(_PluginBase):
     # 插件图标
     plugin_icon = "Jackett_A.png"
     # 插件版本
-    plugin_version = "1.3.8"
+    plugin_version = "1.3.9"
     # 插件作者
     plugin_author = "jtcymc"
     # 作者主页
@@ -296,11 +296,16 @@ class JackettExtend(_PluginBase):
             "id2": self.xxx2,
         }
         """
+        # 包装一层，确保新代码一定被执行
+        def _wrapped_search(*args, **kwargs):
+            logger.warning(f"【{self.plugin_name}】_wrapped_search 被调用！args={len(args)} kwargs={list(kwargs.keys())}")
+            return self.search_torrents(*args, **kwargs)
+
         return {
-            "search_torrents": self.search_torrents,
-            "async_search_torrents": self.search_torrents,
-            "refresh_torrents": self.search_torrents,
-            "async_refresh_torrents": self.search_torrents,
+            "search_torrents": _wrapped_search,
+            "async_search_torrents": _wrapped_search,
+            "refresh_torrents": _wrapped_search,
+            "async_refresh_torrents": _wrapped_search,
         }
 
     def get_api(self) -> List[Dict[str, Any]]:
